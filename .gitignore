@@ -1,0 +1,8 @@
+# Latex build files
+writeup_1/main.aux
+writeup_1/main.fdb_latexmk
+writeup_1/main.fls
+writeup_1/main.log
+writeup_1/main.out
+writeup_1/main.synctex.gz
+writeup_1/main.thm
