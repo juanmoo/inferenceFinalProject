@@ -10,39 +10,69 @@
 }
 \fi
 
-% The next statement enables references to information in the
-% supplement. See the xr-hyperref package for details.
-
 \begin{document}
 \maketitle
 
-\section{Main results}
-\label{sec:main}
+\section*{Problem I: A Bayesian Framework}
+\label{sec:bayesian}
 
 
-\section{Algorithm}
-\label{sec:alg}
+\begin{enumerate}[(a)]
 
-\begin{algorithm}
-\caption{Algorithm}
-\label{alg:algo}
-\begin{algorithmic}
-  \STATE HELLO
-% \STATE{Define $P:=T:=\{ \{1\},\ldots,\{d\}$\}}
-% \WHILE{$\#P > 1$}
-% \STATE{Choose $C^\prime\in\mathcal{C}_p(P)$ with $C^\prime := \operatorname{argmin}_{C\in\mathcal{C}_p(P)} \varrho(C)$}
-% \STATE{Find an optimal partition tree $T_{C^\prime}$ }
-% \STATE{Update $P := (P{\setminus} C^\prime) \cup \{ \bigcup_{t\in C^\prime} t \}$}
-% \STATE{Update $T := T \cup \{ \bigcup_{t\in\tau} t : \tau\in T_{C^\prime}{\setminus} \mathcal{L}(T_{C^\prime})\}$}
-% \ENDWHILE
-% \RETURN $T$
-\end{algorithmic}
-\end{algorithm}
+  % Part A
+  \item \begin{align*}
+          p_{\textbf{y}|f}(\textbf{y}|f) & = \prob{ \textbf{x}_0 = \inv{f}(\textbf{y}_0)} \prod_{j = 1} \prob{\textbf{x}_j = \inv{f}(y_j) | \textbf{x}_{j-1} = \inv{f}} \\
+                                         & = p_{\inv{f}(y)}(\inv{f}(\textbf{y}_0)) \prod_{j = 1}^n M_{\inv{f}(\textbf{y})_{j}, \inv{f}(\textbf{y})_{j-1}}
+        \end{align*}
 
+        % Part B
+  \item \begin{align*}
+          p_{f|\textbf{y}}(f | \textbf{y}) & = \frac{ p_{\textbf{y}|f}(\textbf{y}|f) p_{f}(f) }{p_\textbf{y}(y)}                                                                                                                                                                                  \\
+                                           & = \frac{p_{\inv{f}(y)}(\inv{f}(\textbf{y}_0)) \prod_{j = 1}^n M_{\inv{f}(\textbf{y})_{j}, \inv{f}(\textbf{y})_{j-1}}}{\sum_{g \in \F}(p_{\inv{g}(y)}(\inv{g}(\textbf{y}_0)) \prod_{j = 1}^n M_{\inv{g}(\textbf{y})_{j}, \inv{g}(\textbf{y})_{j-1}})}
+        \end{align*}
+        Where $\F$ is the set of all permutations of $\mathcal{A}$. Thus, the MAP estimator is one that maximizes the above expression or, equivalently, its numerator. Thus
+        \[
+          \hat{f}_{MAP} = \argmax_{f \in \F} p_{\inv{f}(y)}(\inv{f}(\textbf{y}_0)) \prod_{j = 1}^n M_{\inv{f}(\textbf{y})_{j}, \inv{f}(\textbf{y})_{j-1}}
+        \]
+        % Part C
+  \item Direct computation of the $\hat{f}_{MAP}$ is infeasable because it requires an optimization over a large, discrete, non-linear set. Computing expression on (b) would optimize over $\F$ which has a size of $\norm{\F} = \norm{\mathcal{A}}! = 28! \simeq 10^{29}$. Additionally, the constraints necessary to enforce that the $f \in \F$ is permutation will be hard to optimize over.
+\end{enumerate}
+
+\section*{Problem 2: Markov Chain Monte Carlo method}
+\label{sec:mcmc}
+\begin{enumerate}[(a)]
+  % Part A
+  \item After the first fixing one of the two cyphering functions $f_1 \in \F$, there are $\binom{\norm{\mathcal{A}}}{2}$ possible $f_2 \in \F$ such that g differs in exactly two symbol assignments (i.e. those that swap two distinct element assignments in $f_1$). Thus, the probability that $f_1$ and $f_2$ differ in exactly two symbol assignments is given by:
+
+        \[
+          \frac{\binom{\mathcal{A}}{2}}{\norm{A}!} = \frac{1}{2(\norm{A} - 2)!}
+        \]
+
+        % Part B
+  \item part b
+
+        % Part C
+  \item part c
+\end{enumerate}
 
 \section{Experimental results}
 \label{sec:experiments}
 
+% \begin{algorithm}
+% \caption{Algorithm}
+% \label{alg:algo}
+% \begin{algorithmic}
+%   \STATE HELLO
+% % \STATE{Define $P:=T:=\{ \{1\},\ldots,\{d\}$\}}
+% % \WHILE{$\#P > 1$}
+% % \STATE{Choose $C^\prime\in\mathcal{C}_p(P)$ with $C^\prime := \operatorname{argmin}_{C\in\mathcal{C}_p(P)} \varrho(C)$}
+% % \STATE{Find an optimal partition tree $T_{C^\prime}$ }
+% % \STATE{Update $P := (P{\setminus} C^\prime) \cup \{ \bigcup_{t\in C^\prime} t \}$}
+% % \STATE{Update $T := T \cup \{ \bigcup_{t\in\tau} t : \tau\in T_{C^\prime}{\setminus} \mathcal{L}(T_{C^\prime})\}$}
+% % \ENDWHILE
+% % \RETURN $T$
+% \end{algorithmic}
+% \end{algorithm}
 
 % \bibliographystyle{siamplain}
 % \bibliography{references}

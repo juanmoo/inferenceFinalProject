@@ -7,9 +7,13 @@
 % Packages and macros go here
 \usepackage{lipsum}
 \usepackage{amsfonts}
+\usepackage{amsmath}
 \usepackage{graphicx}
 \usepackage{epstopdf}
 \usepackage{algorithmic}
+\usepackage{enumerate}
+\usepackage{dsfont}
+
 \ifpdf
   \DeclareGraphicsExtensions{.eps,.pdf,.png,.jpg}
 \else
@@ -18,6 +22,13 @@
 
 % Add a serial/Oxford comma by default.
 \newcommand{\creflastconjunction}{, and~}
+\newcommand{\prob}[1]{\mathds{P} \left( #1 \right)}
+\newcommand{\inv}[1]{#1^{-1}}
+\newcommand{\F}{\mathcal{F}}
+\newcommand{\norm}[1]{\left| #1 \right|}
+
+\DeclareMathOperator*{\argmax}{arg\,max}
+\DeclareMathOperator*{\argmin}{arg\,min}
 
 % Used for creating new theorem and remark environments
 \newsiamremark{remark}{Remark}
