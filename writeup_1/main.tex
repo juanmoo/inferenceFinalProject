@@ -21,8 +21,8 @@
 
   % Part A
   \item \begin{align*}
-          p_{\textbf{y}|f}(\textbf{y}|f) & = \prob{ \textbf{x}_0 = \inv{f}(\textbf{y}_0)} \prod_{j = 1} \prob{\textbf{x}_j = \inv{f}(y_j) | \textbf{x}_{j-1} = \inv{f}} \\
-                                         & = p_{\inv{f}(y)}(\inv{f}(\textbf{y}_0)) \prod_{j = 1}^n M_{\inv{f}(\textbf{y})_{j}, \inv{f}(\textbf{y})_{j-1}}
+          p_{\textbf{y}|f}(\textbf{y}|f) & = \prob{ \textbf{x}_0 = \inv{f}(\textbf{y}_0)} \prod_{j = 1}^{n-1} \prob{\textbf{x}_j = \inv{f}(y_j) | \textbf{x}_{j-1} = \inv{f}} \\
+                                         & = p_{\inv{f}(y)}(\inv{f}(\textbf{y}_0)) \prod_{j = 1}^{n-1} M_{\inv{f}(\textbf{y})_{j}, \inv{f}(\textbf{y})_{j-1}}
         \end{align*}
 
         % Part B
@@ -49,31 +49,63 @@
         \]
 
         % Part B
-  \item part b
+  \item First, notice that the distribution $p_{f | \textbf{y}}$ can be factorized in to hold the form $p_{f | \textbf{y}}(f | \textbf{y}) = \frac{1}{Z}\tilde{p}_{f | \textbf{y}}$ where
+        \begin{align*}
+          \tilde{p}_{f | \textbf{y}} & = p_{\inv{f}(y)}(\inv{f}(\textbf{y}_0)) \prod_{j = 1}^n M_{\inv{f}(\textbf{y})_{j}, \inv{f}(\textbf{y})_{j-1}}                  \\
+          Z                          & = \sum_{g \in \F}(p_{\inv{g}(y)}(\inv{g}(\textbf{y}_0)) \prod_{j = 1}^n M_{\inv{g}(\textbf{y})_{j}, \inv{g}(\textbf{y})_{j-1}})
+        \end{align*}
+
+        If we let the proposal distribution $V(f' | f)$ be defined as
+        \[
+          V(f' | f) = \begin{cases}
+            \binom{\norm{\A}}{2}^{-1} \text{  for f and f' differ in exactly two symbol assignments} \\
+            0 \text{  otherwise}
+          \end{cases}
+        \]
+
+        When executing Metropolis-Hastings we compute the acceptance factor as follows:
+
+        \begin{align*}
+          a(f \rightarrow f') & \triangleq \min(1, \frac{\tilde{p}_{f | \textbf{y}}(f' | \textbf{y})}{\tilde{p}_{f | \textbf{y}}(f | \textbf{y})} \frac{V(f | f')}{V(f' | f)}) \\
+                              & =\min(1, \frac{\tilde{p}_{f | \textbf{y}}(f' | \textbf{y})}{\tilde{p}_{f | \textbf{y}}(f | \textbf{y})})
+        \end{align*}
+
+        Note that in the event that $\tilde{p}_{f | \textbf{y}}(f' | \textbf{y}) = \tilde{p}_{f | \textbf{y}}(f' | \textbf{y}) = 0$, we will define $a(f \rightarrow f') = 1$.
 
         % Part C
-  \item part c
+  \item
+        \begin{algorithm*}
+          \caption{Decoding using Metropolis-Hastings}
+          \label{alg:decoding}
+          \begin{algorithmic}
+            \STATE $\hat{\F} \leftarrow \{\}$
+            \STATE $f \leftarrow$ random permutation of $\A$
+
+            \WHILE{$\norm{\hat{\F}} < 5000$}
+            \STATE $f' \leftarrow$ permutation obtained by swapping two assignments of $f$ at random.
+            \STATE $a(f \rightarrow f') \leftarrow \min(1, \frac{\tilde{p}_{f | \textbf{y}}(f' | \textbf{y})}{\tilde{p}_{f | \textbf{y}}(f | \textbf{y})})$
+            \STATE $r \sim \unif(0, 1)$
+            \IF{$r \leq a(f \rightarrow f')$}
+            \STATE $\hat{\F} = \hat{\F} \cup \{ f' \}$
+            \STATE $f \leftarrow f'$
+            \ENDIF
+            \ENDWHILE
+
+            \STATE $f_{MAP} = \argmax_{f \in \hat{\F}} \tilde{{p}}_{f | \textbf{y}}(f | \textbf{y})$
+            \RETURN $\inv{f_{MAP}}(\textbf{y})$
+          \end{algorithmic}
+        \end{algorithm*}
 \end{enumerate}
 
 \section{Experimental results}
 \label{sec:experiments}
 
-% \begin{algorithm}
-% \caption{Algorithm}
-% \label{alg:algo}
-% \begin{algorithmic}
-%   \STATE HELLO
-% % \STATE{Define $P:=T:=\{ \{1\},\ldots,\{d\}$\}}
-% % \WHILE{$\#P > 1$}
-% % \STATE{Choose $C^\prime\in\mathcal{C}_p(P)$ with $C^\prime := \operatorname{argmin}_{C\in\mathcal{C}_p(P)} \varrho(C)$}
-% % \STATE{Find an optimal partition tree $T_{C^\prime}$ }
-% % \STATE{Update $P := (P{\setminus} C^\prime) \cup \{ \bigcup_{t\in C^\prime} t \}$}
-% % \STATE{Update $T := T \cup \{ \bigcup_{t\in\tau} t : \tau\in T_{C^\prime}{\setminus} \mathcal{L}(T_{C^\prime})\}$}
-% % \ENDWHILE
-% % \RETURN $T$
-% \end{algorithmic}
-% \end{algorithm}
+\begin{enumerate}[(a)]
+  \item part a
+  \item part b
+  \item part c
+  \item part d
+  \item part e
+\end{enumerate}
 
-% \bibliographystyle{siamplain}
-% \bibliography{references}
 \end{document}
