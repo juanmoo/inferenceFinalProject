@@ -1,6 +1,7 @@
 \documentclass{siamart190516}
 
 \input{ex_shared}
+\graphicspath{{figures}}
 
 % Optional PDF information
 \ifpdf
@@ -34,6 +35,7 @@
         \[
           \hat{f}_{MAP} = \argmax_{f \in \F} p_{\inv{f}(y)}(\inv{f}(\textbf{y}_0)) \prod_{j = 1}^n M_{\inv{f}(\textbf{y})_{j}, \inv{f}(\textbf{y})_{j-1}}
         \]
+
         % Part C
   \item Direct computation of the $\hat{f}_{MAP}$ is infeasable because it requires an optimization over a large, discrete, non-linear set. Computing expression on (b) would optimize over $\F$ which has a size of $\norm{\F} = \norm{\mathcal{A}}! = 28! \simeq 10^{29}$. Additionally, the constraints necessary to enforce that the $f \in \F$ is permutation will be hard to optimize over.
 \end{enumerate}
@@ -97,15 +99,33 @@
         \end{algorithm*}
 \end{enumerate}
 
-\section{Experimental results}
+\section*{Problem 3: Implementation}
 \label{sec:experiments}
 
 \begin{enumerate}[(a)]
-  \item part a
-  \item part b
-  \item part c
-  \item part d
-  \item part e
+  \item Log-likelihood v. Iteration Count\\
+        \includegraphics[width=5cm]{loglikelihoodviter.png}
+
+        Note that in order to make convergence slightly faster, algorithm \ref{alg:decoding} was modified slightly by initializing the first permutation function to the permutation that matches the permutation that ensures that the ordering produced by the letter frequencies in P matches that of the emperical frequencies in the decoded ciphertext.
+
+  \item Acceptance Rate (T = 100) v. Iteration Count \\
+        \includegraphics[width=5cm]{acceptancerateviter.png}
+  \item Accuracy Rate v. Iteration Count\\
+        \includegraphics[width=5cm]{accuracyrateviter.png}
+  \item The plot below depicts the average accuracy of decoded text as a function of the percent of the symbols of the ciphertext used. For each decoding run, the first $N * f$ symbols were used where $f$ is the fraction of sybmols to be utilized during the run. For each fraction to tested, the average accuracy was computed over $\ceil{\frac{1}{f}}$ runs.
+
+        \includegraphics[width=5cm]{accvfrac.png}
+
+        In general, the accuracy of the decoded text is highest when the entire ciphertext is used. This is because the longer the text, the fewer the permutations that generate an encoding that closely matches the true ciphertext. Thus, we have a higher probability of sampling an accurate ciphering function.
+
+        Note that the above graph does not always follow this conclusion however. This is partly due to randomness and the fact that, for a shorter text, one can achieve a high accuracy even if the ciphering function is not accurate for a small portion of the encoded text.
+
+  \item As the number of incresases, the log-likelihood per symbol seems to approach a number close to $-3.4$. This suggests that emperical entropy per symbol is approximatelly 3.4 bits per symbol. Note this is higher than the reported entropy of english in the reference article of approximatelly one bit per symbol mostly due to our modeling choice of only taking into account the immediatelly preceding symbol.
+
+        The below plot depicts the evolution of the log-likelihood per symbol as we continue to iterate using (a slightly optimized version of) algorithm \ref{alg:decoding}.
+
+        \includegraphics[width=5cm]{loglikelihoodviterpersymb.png}
+
 \end{enumerate}
 
 \end{document}

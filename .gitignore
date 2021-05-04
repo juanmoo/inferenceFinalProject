@@ -6,3 +6,7 @@ writeup_1/main.log
 writeup_1/main.out
 writeup_1/main.synctex.gz
 writeup_1/main.thm
+
+# Local Environment Files
+**/.DS_Store
+.vscode
