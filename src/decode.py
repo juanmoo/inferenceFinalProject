@@ -1,72 +1,354 @@
-from os import access
+import os
+from time import time
 import numpy as np
-from numpy.random import default_rng
-from model import Permutation
-from matplotlib import pyplot as plt
-from tqdm import tqdm
+# import multiprocessing
 
-# def decode(ciphertext: str, has_breakpoint: bool) -> str:
+# Initialization
+rng = np.random.default_rng()
 
-#     plaintext = ciphertext  # Replace with your code
+# Constants
+dir_path = os.path.dirname(os.path.abspath(__file__))
 
-#     return plaintext
+# External Files
+is_submission = True
+path_prefix = '' if is_submission else '..'
+A = np.genfromtxt(os.path.join(path_prefix, 'data/alphabet.csv'),
+                  delimiter=',', dtype=str)
+A_map = {c: j for j, c in enumerate(A)}
+log_P = np.log2(np.genfromtxt(
+    os.path.join(path_prefix, 'data/letter_probabilities.csv'), delimiter=','))
+log_M = np.log2(np.genfromtxt(os.path.join(path_prefix,
+                                           'data/letter_transition_matrix.csv'), delimiter=','))
+freq_eng = np.argsort(log_P)[::-1]
 
 
-def decode(y: np.array, P: np.array, M: np.array, x: np.array = None, has_breakpoint: bool = False, max_sample_size: int = 3000, max_iter_count: int = 5000, alphabet_size: int = 28, p_val_store: list = None, accept_store: list = None, accuracy_store: list = None, initial_mapping: np.array = None) -> str:
+# Ciphertext samples
+ciphertext_mean_length = 10000
+ciphertext_std_length = 2000
 
-    if initial_mapping is not None:
-        f_0 = Permutation(initial_mapping=initial_mapping)
+# Decode configs
+max_iters = 10000
+bp_std = 20
+
+
+##############
+
+
+def decode(ciphertext: str, has_breakpoint: bool, logger=None) -> str:
+
+    plaintext: str = None
+
+    # start_time = time()
+    if has_breakpoint:
+
+        # num_reps = 1
+        num_reps = 200
+        arg_list = [(ciphertext, logger) for _ in range(num_reps)]
+        runs = [decode_breakpoint(a) for a in arg_list]
+        # with multiprocessing.get_context('spawn').Pool(4) as p:
+        # runs = p.map(decode_breakpoint, arg_list)
+        plaintext, _, logger_ret = max(runs, key=lambda e: e[1])
+
     else:
-        f_0 = Permutation(random_init=True)
-    f_best = None
-    accepted_count = 0
-    iter_count = 0
-    rng = default_rng()
+        # num_reps = 1
+        num_reps = 100
+        arg_list = [(ciphertext, logger) for _ in range(num_reps)]
+        # with multiprocessing.get_context('spawn').Pool(4) as p:
+        # runs = p.map(decode_no_breakpoint, arg_list)
+        runs = [decode_no_breakpoint(a) for a in arg_list]
+        plaintext, _, logger_ret = max(runs, key=lambda e: e[1])
 
-    # while accepted_count < max_sample_size or iter_count > max_iter_count:
-    for iter_count in tqdm(range(max_iter_count)):
+    # ellapsed_time = time() - start_time
 
-        if accepted_count > max_sample_size:
-            break
+    # if logger:
+    #     logger.update(logger_ret)
+    #     logger['time'] = ellapsed_time
 
-        swap_idxs = rng.choice(alphabet_size, 2, replace=False)
-        f_prime = Permutation(f_0)
-        f_prime.swap_idxs(swap_idxs)
+    return plaintext
 
-        p_tilde_f_val = f_0.p_tilde(y, M, P)
-        p_tilde_f_prime_val = f_prime.p_tilde(y, M, P)
 
-        # accept if p_tilde_f_val or p_tilde_f_prime_val are zero
-        accept = False
+def compute_log_likelihood(seq, f):
 
-        if p_tilde_f_val > -np.inf:
-            p_tilde_ratio_log = p_tilde_f_prime_val - p_tilde_f_val
-            p_tilde_ratio_log = min(0, p_tilde_ratio_log)
-            a_f_fp = 2.0**(p_tilde_ratio_log)
-            r = np.random.rand()
-            if r <= a_f_fp:
-                accept = True
-        else:
-            accept = True
+    if len(seq) > 0:
+        val = log_P[f[seq[0]]]
+        val += log_M[f[seq[1:]], f[seq[:-1]]].sum()
+    else:
+        val = 0
 
-        if accept:
-            f_0 = f_prime
-            accepted_count += 1
-            if not f_best:
-                f_best = f_0
-            elif f_best.p_tilde(y, M, P) < f_0.p_tilde(y, M, P):
-                f_best = Permutation(f_0)
+    return val
 
-                if p_val_store is not None:
-                    p_val_store.append((iter_count, f_best.p_tilde(y, M, P)))
 
-        if (x is not None) and (accuracy_store is not None):
-            x_decode = f_best.translate(y)
-            acc_rate = (x == x_decode).mean()
-            accuracy_store.append(acc_rate)
+def compute_log_likelihood_swap(seq, f, prev_ll, swap):
+    if len(seq) > 0:
+        val = prev_ll
 
-        if accept_store is not None:
-            accept_store.append(accept)
-        iter_count += 1
+        # count instances of i and j
+        i, j = swap
+        unique, counts = np.unique(seq, return_counts=True)
+        freqs = dict(zip(unique, counts))
 
-    return f_best.translate(y)
+        val -= freqs[i] * f[i]
+
+    else:
+        return 0
+
+
+'''
+BREAKPOINT
+'''
+
+
+def mh_step_bp(f1, f2, b, seq, f1_ll=None, f2_ll=None):
+
+    # Sample F1
+    seq1 = seq[:b]
+    swap_idxs = rng.choice(len(A), 2, replace=False)
+    f1_prime = np.array(f1, copy=True)
+    f1_prime[swap_idxs] = f1_prime[swap_idxs[::-1]]
+
+    f1_ll = compute_log_likelihood(seq1, f1)
+    f1p_ll = compute_log_likelihood(seq1, f1_prime)
+
+    accept = False
+
+    if f1_ll <= -np.inf:
+        accept = True
+    elif f1p_ll > f1_ll:
+        accept = True
+    else:
+        ratio_log = f1p_ll - f1_ll
+        accept_prob = 2.0**ratio_log
+        accept = np.random.rand() < accept_prob
+
+    if accept:
+        f1 = f1_prime
+        ll1 = f1p_ll
+    else:
+        ll1 = f1_ll
+
+    # Sample F1
+    seq2 = seq[b:]
+    swap_idxs = rng.choice(len(A), 2, replace=False)
+    f2_prime = np.array(f2, copy=True)
+    f2_prime[swap_idxs] = f2_prime[swap_idxs[::-1]]
+
+    f2_ll = compute_log_likelihood(seq2, f2)
+    f2p_ll = compute_log_likelihood(seq2, f2_prime)
+
+    accept = False
+
+    if f2_ll <= -np.inf:
+        accept = True
+    elif f2p_ll > f2_ll:
+        accept = True
+    else:
+        ratio_log = f2p_ll - f2_ll
+        accept_prob = 2.0**ratio_log
+        accept = np.random.rand() < accept_prob
+
+    if accept:
+        f2 = f2_prime
+        ll2 = f2p_ll
+    else:
+        ll2 = f2_ll
+
+    # Sample b
+    b_prime = int(np.random.normal(b, bp_std))
+    b_prime = np.clip(b_prime, 0, len(seq))
+
+    b_ll = ll1 + ll2
+    b_prime_ll = compute_log_likelihood(
+        seq[:b_prime], f1) + compute_log_likelihood(seq[b_prime:], f2)
+
+    accept = False
+
+    if b_ll <= -np.inf:
+        accept = True
+    elif b_prime_ll > b_ll:
+        accept = True
+    else:
+        ratio_log = b_prime_ll - b_ll
+        accept_prob = 2.0**ratio_log
+        accept = np.random.rand() < accept_prob
+
+    if accept:
+        b = b_prime
+        b_ll = b_prime_ll
+    else:
+        b_ll = b_ll
+
+    return (f1, f2, b, ll1, ll2, b_ll)
+
+
+def decode_breakpoint(args) -> str:
+
+    # print('Decode with breakpoint')
+
+    ciphertext, logger = args
+
+    if logger:
+        logger = logger.copy()
+
+    # Initialization
+    N = len(ciphertext)
+    Y = np.array([A_map[char] for char in ciphertext])
+
+    # f1 and f2 are random permutations
+    f1 = np.arange(len(A))
+    np.random.shuffle(f1)
+    f2 = np.arange(len(A))
+    np.random.shuffle(f2)
+
+    # breakpoint initialized to middle of ciphertext
+    b = N//2
+
+    # best vals
+    best_vals = None
+    best_ll = -np.inf
+
+    ll_q = []
+    window = 500
+    threshold = 0.003
+    # threshold = 0.001
+
+    for iter_idx in range(max_iters):
+
+        # mh_step_bp(f1, f2, b, seq, f1_ll=None, f2_ll=None)
+        vals = mh_step_bp(f1, f2, b, Y)
+        f1, f2, b, f1_ll, f2_ll, b_ll = vals
+
+        if best_ll < b_ll:
+            best_vals = vals
+            best_ll = b_ll
+
+        if logger is not None:
+            if 'total_ll' in logger:
+                # print('logging!')
+                logger['total_ll'].append(best_ll)
+
+        ll_q.append(best_ll)
+
+        if (best_ll > -np.inf) and (iter_idx > window):
+            prev = np.clip(ll_q[iter_idx - window], -1e99, 1e99)
+            curr = np.clip(best_ll, -1e99, 1e99)
+            p_diff = -(curr - prev)/prev
+
+            if p_diff <= threshold:
+                break
+
+    # decode Y using best f1, f2, and b
+    if best_vals:
+        best_f1, best_f2, best_b, _, _, best_ll = best_vals
+        x_decode = [best_f1[y_i]
+                    for y_i in Y[:best_b]] + [best_f2[y_i] for y_i in Y[best_b:]]
+        plaintext = ''.join([A[i] for i in x_decode])
+    else:
+        plaintext = ciphertext
+        best_ll = -np.inf
+
+    return plaintext, best_ll, logger
+
+
+'''
+NO BREAKPOINT
+'''
+
+
+def mh_step_nbp(f1, seq, f1_ll=None):
+
+    swap_idxs = rng.choice(len(A), 2, replace=False)
+    f1_prime = np.array(f1, copy=True)
+    f1_prime[swap_idxs] = f1_prime[swap_idxs[::-1]]
+
+    f1_ll = compute_log_likelihood(seq, f1)
+    f1p_ll = compute_log_likelihood(seq, f1_prime)
+
+    accept = False
+
+    if f1_ll <= -np.inf:
+        accept = True
+    elif f1p_ll > f1_ll:
+        accept = True
+    else:
+        ratio_log = f1p_ll - f1_ll
+        accept_prob = 2.0**ratio_log
+        accept = np.random.rand() < accept_prob
+
+    if accept:
+        f1 = f1_prime
+        ll1 = f1p_ll
+    else:
+        ll1 = f1_ll
+
+    return f1, ll1
+
+
+def decode_no_breakpoint(args) -> str:
+
+    # print('Decode no with breakpoint')
+
+    ciphertext, logger = args
+    if logger:
+        logger = logger.copy()
+
+    # Initialization
+    N = len(ciphertext)
+    Y = np.array([A_map[char] for char in ciphertext])
+
+    # f is random perm
+    f = np.arange(len(A))
+    # np.random.shuffle(f)
+
+    # f matches empirical freq order to english order
+    unique, counts = np.unique(Y, return_counts=True)
+    freq_dict = {symb: count for (symb, count) in zip(unique, counts)}
+    emp_freq = np.array(
+        sorted(range(len(A)), key=lambda char: -1 * freq_dict.get(char, 0)))
+    # freq_ct = unique[np.argsort(counts)[::-1]]
+    f[freq_eng] = emp_freq
+
+    # best vals
+    best_vals = None
+    best_ll = -np.inf
+
+    ll_q = []
+    window = 500
+    threshold = 0.003
+    # threshold = 0.001
+
+    should_terminate = False
+    for iter_idx in range(max_iters):
+
+        vals = mh_step_nbp(f, Y)
+        f, ll = vals
+
+        if logger is not None:
+            if 'total_ll' in logger:
+                logger['total_ll'].append(ll)
+
+        if ll > best_ll:
+            best_vals = vals
+            best_ll = ll
+
+        if logger is not None:
+            if 'total_ll' in logger:
+                logger['total_ll'].append(best_ll)
+
+        ll_q.append(best_ll)
+
+        if (best_ll > -np.inf) and (iter_idx > window):
+            prev = np.clip(ll_q[iter_idx - window], -1e99, 1e99)
+            curr = np.clip(best_ll, -1e99, 1e99)
+            p_diff = -(curr - prev)/prev
+
+            if p_diff <= threshold:
+                break
+
+    if best_vals:
+        best_f, ll = best_vals
+        x_decode = [best_f[y_i]for y_i in Y]
+        plaintext = ''.join([A[i] for i in x_decode])
+    else:
+        plaintext = ciphertext, -np.inf, logger
+
+    return plaintext, ll, logger

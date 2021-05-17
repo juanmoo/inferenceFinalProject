@@ -1,0 +1,56 @@
+% SIAM Shared Information Template
+% This is information that is shared between the main document and any
+% supplement. If no supplement is required, then this information can
+% be included directly in the main document.
+
+
+% Packages and macros go here
+\usepackage{lipsum}
+\usepackage{amsfonts}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{epstopdf}
+\usepackage{algorithmic}
+\usepackage{enumerate}
+\usepackage{dsfont}
+
+\ifpdf
+  \DeclareGraphicsExtensions{.eps,.pdf,.png,.jpg}
+\else
+  \DeclareGraphicsExtensions{.eps}
+\fi
+
+% Add a serial/Oxford comma by default.
+\newcommand{\creflastconjunction}{, and~}
+\newcommand{\prob}[1]{\mathds{P} \left( #1 \right)}
+\newcommand{\inv}[1]{#1^{-1}}
+\newcommand{\norm}[1]{\left| #1 \right|}
+\newcommand{\ceil}[1]{\left\lceil #1 \right\rceil}
+
+% Caligraphy Letters
+\newcommand{\F}{\mathcal{F}}
+\newcommand{\A}{\mathcal{A}}
+\newcommand{\unif}{\mathcal{U}}
+
+\DeclareMathOperator*{\argmax}{arg\,max}
+\DeclareMathOperator*{\argmin}{arg\,min}
+
+% Used for creating new theorem and remark environments
+\newsiamremark{remark}{Remark}
+\newsiamremark{hypothesis}{Hypothesis}
+\crefname{hypothesis}{Hypothesis}{Hypotheses}
+\newsiamthm{claim}{Claim}
+
+% Sets running headers as well as PDF title and authors
+\headers{6.437 Final Project | Part I}{Juan M Ortiz}
+
+% Title. If the supplement option is on, then "Supplementary Material"
+% is automatically inserted before the title.
+\title{6.437 Final Project | Write up I}
+
+% Authors: full names plus addresses.
+\author{Juan M Ortiz}
+
+\usepackage{amsopn}
+\DeclareMathOperator{\diag}{diag}

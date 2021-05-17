@@ -75,6 +75,7 @@ def assert_clean(text: str):
         elif x == " ":
             assert text[i + 1] in string.ascii_lowercase
 
+
 def clean_text(text: str) -> str:
     clean = _clean_text(text)
     assert_clean(clean)
